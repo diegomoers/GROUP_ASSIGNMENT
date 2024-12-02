@@ -2,9 +2,6 @@
 library(readr)
 library(dplyr)
 library(tidyr)
-library(stats)
-
-# USE BASELINE SAMPLE WITH ONE CEO DROPPED
 
 # Read the CSV file
 setwd("~/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT")
@@ -15,12 +12,9 @@ ceo_data <- ceo_data %>%
   filter(level1 == 'interacting',
          type != 'personal_family',
          id != 1115) %>%
-  # Ensure 'id' is treated as a factor or character if needed
   mutate(id = as.character(id))
 
-# CONTRUCT DATASET WITH SIX FEATURES, EXPRESSED AS TIME SHARE DURING WEEK
-
-# Function to create crosstabs similar to pandas' crosstab
+# Function to create crosstabs
 create_crosstab <- function(data, row_var, col_var, value_filter = NULL) {
   if (!is.null(value_filter)) {
     data <- data %>% filter(!!sym(col_var) != value_filter)
@@ -43,17 +37,39 @@ ceo_data <- ceo_data %>%
     activity_dummy = 1
   )
 
-df4 <- create_crosstab(ceo_data, "id", "ins_alone")
-df4a <- create_crosstab(ceo_data, "id", "ins")
-df5 <- create_crosstab(ceo_data, "id", "ins_out")
 df5a <- create_crosstab(ceo_data, "id", "out")
-df6 <- create_crosstab(ceo_data, "id", "coordinate")
 
-df_production <- create_crosstab(ceo_data, "id", "production")
 df_groupcom <- create_crosstab(ceo_data, "id", "groupcom")
 df_bunits <- create_crosstab(ceo_data, "id", "bunits")
 df_coo <- create_crosstab(ceo_data, "id", "coo")
 df_cao <- create_crosstab(ceo_data, "id", "cao")
+
+df6 <- create_crosstab(ceo_data, "id", "coordinate")
+
+# Rename columns before joining
+df5a <- df5a %>%
+  rename(out = `1`) %>%
+  select(id, out)
+
+df6 <- df6 %>%
+  rename(coordinate2 = `1`) %>%
+  select(id, coordinate2)
+
+df_groupcom <- df_groupcom %>%
+  rename(groupcom = `1`) %>%
+  select(id, groupcom)
+
+df_bunits <- df_bunits %>%
+  rename(bunits = `1`) %>%
+  select(id, bunits)
+
+df_coo <- df_coo %>%
+  rename(coo = `1`) %>%
+  select(id, coo)
+
+df_cao <- df_cao %>%
+  rename(cao = `1`) %>%
+  select(id, cao)
 
 # Aggregate data
 agg_data <- data.frame(id = df1$id) %>%
@@ -66,28 +82,23 @@ agg_data <- data.frame(id = df1$id) %>%
   left_join(df_coo, by = "id") %>%
   left_join(df_cao, by = "id") %>%
   left_join(df6, by = "id") %>%
-  # Replace NA with 0 for any missing combinations
   replace(is.na(.), 0)
 
-agg_data <- agg_data_raw %>%
+# Rename and mutate to create the desired variables
+agg_data <- agg_data %>%
   rename(
-    long = `1hrplus`,          # Rename '1hrplus' to 'long'
-    planned = `planned`,       # 'planned' remains the same
-    large = `two_plus_ppl`,    # Rename 'two_plus_ppl' to 'large'
-    out = `1.y.y.y`,           # Rename '1.y.y.y' to 'out'
-    coordinate2 = `1.y.y`      # Rename '1.y.y' to 'coordinate2'
+    long = `1hrplus`,
+    planned = planned,
+    large = `two_plus_ppl`
   ) %>%
   mutate(
-    # Create 'coordinate1' by summing the relevant '1.*' columns
-    coordinate1 = `1.x` + `1.y` + `1.x.x` + `1.x.x.x`
+    coordinate1 = groupcom + bunits + coo + cao
   ) %>%
-  # Select only the necessary columns for further analysis
   select(id, long, planned, large, out, coordinate1, coordinate2)
 
 # Verify the renamed and mutated agg_data
 print("Renamed and Mutated agg_data:")
 print(head(agg_data))
-str(agg_data)
 
 # Calculate activities by summing 'activity_dummy' for each 'id'
 activities <- ceo_data %>%
@@ -156,6 +167,5 @@ pca_scores <- as.matrix(pca_data) %*% pca_components
 print("PCA Scores (First 6 Rows):")
 print(head(pca_scores))
 
-summarize(
 
   
