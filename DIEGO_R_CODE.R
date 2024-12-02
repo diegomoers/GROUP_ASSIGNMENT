@@ -168,4 +168,54 @@ print("PCA Scores (First 6 Rows):")
 print(head(pca_scores))
 
 
-  
+##K-MEANS
+# Assuming 'agg_data' has been created as per previous steps
+
+# Load necessary libraries
+library(dplyr)
+
+# Calculate the total count per CEO
+agg_data$total_count <- rowSums(agg_data[, c('long', 'planned', 'large', 'out', 'coordinate1', 'coordinate2')])
+
+#
+#Calculate the shares
+#agg_data_share <- agg_data %>%
+ # mutate(
+  #  long_share = long / total_count,
+   # planned_share = planned / total_count,
+    #large_share = large / total_count,
+    #out_share = out / total_count,
+    #coordinate1_share = coordinate1 / total_count,
+    #coordinate2_share = coordinate2 / total_count
+  #) %>%
+  #select(id, ends_with('_share'))
+
+
+# Prepare the data for k-means (exclude 'id' column)
+kmeans_data <- agg_data_share %>%
+  select(-id)
+
+# Set seed for reproducibility
+set.seed(60)
+
+# Perform k-means clustering
+num_clusters <- 2
+kmeans_result <- kmeans(kmeans_data, centers = num_clusters, nstart = 1)
+
+# Extract the centroids
+centroids <- kmeans_result$centers
+
+# Extract the cluster labels
+labels <- kmeans_result$cluster
+
+# Extract the total within-cluster sum of squares (inertia)
+inertia <- kmeans_result$tot.withinss
+
+# Display the results
+print("K-Means centroids:")
+print(centroids)
+
+print("K-Means labels (first 10):")
+print(labels[1:10])
+
+print(paste("K-Means total within-cluster sum of squares (inertia):", inertia))
