@@ -1,0 +1,72 @@
+# Load required libraries
+library(dplyr)
+library(tidyr)
+library(stats)
+library(cluster)
+
+# Read data
+ceo_data <- read.csv("../baseline_results/survey_response_data.csv", stringsAsFactors = FALSE)
+ceo_data <- ceo_data %>%
+  filter(level1 == "interacting") %>%
+  filter(type != "personal_family") %>%
+  filter(id != 1115)
+
+# Construct dataset with six features expressed as time share during the week
+df1 <- table(ceo_data$id, ceo_data$F_duration)
+df2 <- table(ceo_data[ceo_data$F_planned != "missing", "id"],
+             ceo_data[ceo_data$F_planned != "missing", "F_planned"])
+df3 <- table(ceo_data[ceo_data$F_participants != "missing", "id"],
+             ceo_data[ceo_data$F_participants != "missing", "F_participants"])
+
+# Create additional features
+ceo_data <- ceo_data %>%
+  mutate(
+    ins_alone = ifelse(ins == 1 & out == 0, 1, 0),
+    out_alone = ifelse(ins == 0 & out == 1, 1, 0),
+    ins_out = ifelse(ins == 1 & out == 1, 1, 0),
+    coordinate = ifelse(n_functions > 1, 1, 0),
+    activity_dummy = 1
+  )
+
+df4 <- table(ceo_data$id, ceo_data$ins_alone)
+df4a <- table(ceo_data$id, ceo_data$ins)
+df5 <- table(ceo_data$id, ceo_data$ins_out)
+df5a <- table(ceo_data$id, ceo_data$out)
+df6 <- table(ceo_data$id, ceo_data$coordinate)
+df_production <- table(ceo_data$id, ceo_data$production)
+df_groupcom <- table(ceo_data$id, ceo_data$groupcom)
+df_bunits <- table(ceo_data$id, ceo_data$bunits)
+df_coo <- table(ceo_data$id, ceo_data$coo)
+df_cao <- table(ceo_data$id, ceo_data$cao)
+
+agg_data <- data.frame(row.names = rownames(df1))
+agg_data$long <- df1[, "1hrplus"]
+agg_data$planned <- df2[, "planned"]
+agg_data$large <- df3[, "two_plus_ppl"]
+agg_data$out <- df5a[, "1"]
+agg_data$coordinate1 <- df_groupcom[, "1"] + df_bunits[, "1"] +
+  df_coo[, "1"] + df_cao[, "1"]
+agg_data$coordinate2 <- df6[, "1"]
+
+activities <- aggregate(activity_dummy ~ id, data = ceo_data, sum)
+agg_data_share <- sweep(agg_data, 1, activities$activity_dummy, FUN = "/")
+
+# Principal Component Analysis (PCA)
+cor_matrix <- cor(agg_data_share, use = "complete.obs")
+eig <- eigen(cor_matrix)
+pca <- as.matrix(agg_data_share) %*% eig$vectors[, order(eig$values, decreasing = TRUE)[1:2]]
+
+# K-Means Clustering
+set.seed(123) # For reproducibility
+kmeans_result <- kmeans(agg_data_share, centers = 2)
+cat("k-means centroids = \n", kmeans_result$centers, "\n")
+
+# Output results to file
+ceo_type <- data.frame(
+  id = rownames(agg_data),
+  pca1 = pca[, 1],
+  pca2 = pca[, 2],
+  k_means = kmeans_result$cluster
+)
+
+write.csv(ceo_type, "clusters.csv", row.names = FALSE)
