@@ -9,7 +9,7 @@ from sklearn.cluster import k_means
 
 
 # USE BASELINE SAMPLE WITH ONE CEO DROPPED
-# Changer directory so it works on your laptop
+# Change directory so it works on your laptop
 ceo_data = pd.read_csv("/Users/hugovandenbelt/Desktop/Data Science Assignment/2017765data/behaviors/python_index-construction/baseline_results/survey_response_data.csv",
                        low_memory=False)
 ceo_data.set_index(['id'], inplace=True)
