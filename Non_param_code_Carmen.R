@@ -72,3 +72,6 @@ ceo_type <- data.frame(
 # Guardar los resultados en un archivo CSV
 write.csv(ceo_type, "clusters.csv", row.names = FALSE)
 
+#Commands to preview results: 
+k_means_result$centers #Indicates details about the centroids: each row, a center
+k_means_result$cluster #Indicates the exact cluster each 
