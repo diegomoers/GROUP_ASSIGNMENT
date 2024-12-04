@@ -165,7 +165,7 @@ pca_scores <- as.matrix(pca_data) %*% pca_components
 
 # Verify PCA scores
 print("PCA Scores (First 6 Rows):")
-print(head(pca_scores))
+print(head(pca_scores*-1))     
 
 
 ##K-MEANS
