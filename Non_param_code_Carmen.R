@@ -75,3 +75,17 @@ write.csv(ceo_type, "clusters.csv", row.names = FALSE)
 #Commands to preview results: 
 k_means_result$centers #Indicates details about the centroids: each row, a center
 k_means_result$cluster #Indicates the exact cluster each 
+
+explained_variance <- (pca_result$sdev)^2  # Varianza de cada componente
+proportion_variance <- explained_variance / sum(explained_variance)  # Proporción explicada
+print(pca_values) #Displays PC1 and PC2 for each CEO id
+print(pca_result) #Displays composition of each component
+summary (pca_result) #Displays std deviation
+screeplot(pca_result) #Plot variances of components
+#If we want to check variances be careful not mixing them with std dev!!!
+
+
+
+
+
+
