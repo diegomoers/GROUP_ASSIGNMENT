@@ -291,9 +291,10 @@ biplot(pca_result_4, scale = 0, choices = c(3, 4), main = "PCA Biplot (PC3 vs PC
 ceo_data <- ceo_data %>%
   mutate(public_relations = ifelse(type %in% c("public_event", "workrelated_leisure", "business_meal", "site_visit"), 1, 0))
 
-# Verify:
-table(ceo_data$public_relations)
-head(ceo_data[, c("id", "public_relations")])
+#Group by id so that we can paste it to agg_data_share
+public_relations_summary <- ceo_data %>%
+  +     group_by(id) %>%
+  +     summarise(public_relations = sum(public_relations, na.rm = TRUE) / n())
 
 ###Create New Variable 2: decision_intensity
 #Check the mean of the functions in the data set: 
@@ -305,28 +306,30 @@ decision_intensity <- ceo_data %>%
   summarise(decision_intensity = sum(n_functions > 2, na.rm = TRUE) / n())
 #Decision intensity = proportion of activities that imply more than 2 activities per CEO. 
 
-# Verificar los resultados
-print(head(decision_intensity))
-
-#Join new variables to agg_data_shared before performing PCA. 
+#Note: ceo_data is a dataset of many observations per CEO. Agg_data_share is a measure per CEO
+  # that is, only 1 observation, aggregated/grouped by CEO. We add out new variables to agg_data_share:
 agg_data_share <- agg_data_share %>%
-  left_join(decision_intensity, by = "id")
+  left_join(decision_intensity, by = "id") %>%
+  left_join(public_relations_summary, by = "id")
 
-agg_data_share <- agg_data_share %>%
-  left_join(public_relations, by = "id")
+##PCA analysis for 8 variables 
+# Subset for PCA with 8 parameters
+pca_data_8 <- agg_data_share %>%
+  select(long, planned, large, out, coordinate1, coordinate2, public_relations, decision_intensity)
 
-# Verify!s
-print(head(agg_data))
+# Verify the PCA data with 8 parameters
+print("PCA Data with 8 Parameters:")
+print(head(pca_data_8))
 
+# Perform PCA
+pca_result_8 <- prcomp(pca_data_8, scale. = TRUE)
 
-
-agg_data_share <- agg_data_share %>%
-  left_join(ceo_data[, c("id", "public_relations")], by = "id") %>%
-  left_join(ceo_data[, c("id", "decision_intensity")], by = "id")
-
-
-
-
+#Scree plot for 8 components
+barplot(pca_result_8$sdev^2 / sum(pca_result_4$sdev^2),
+        main = "Scree Plot (8 Parameters)",
+        xlab = "Principal Component",
+        ylab = "Proportion of Variance Explained",
+        col = "skyblue")
 
 
 
