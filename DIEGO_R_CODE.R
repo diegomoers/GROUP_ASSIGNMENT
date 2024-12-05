@@ -167,8 +167,9 @@ pca_scores <- as.matrix(pca_data) %*% pca_components
 
 # Verify PCA scores
 print("PCA Scores (First 6 Rows):")
-print(head(pca_scores))
-
+print(head(pca_scores*-1))     
+print(pca_components*-1)
+##CARMEN
 
 ##K-MEANS
 # Assuming 'agg_data' has been created as per previous steps
@@ -218,6 +219,29 @@ print("K-Means centroids:")
 print(centroids)
 
 print("K-Means labels (first 10):")
-print(labels[1:10])
+print(labels)
 
 print(paste("K-Means total within-cluster sum of squares (inertia):", inertia))
+
+
+###########################
+######### TABLES ##########
+###########################
+#TABLE1
+library(haven)
+library(dplyr)
+
+# Load the Stata file
+corrdata <- read_dta("diegos_correlation_data.dta")
+
+# Select specific variables for correlation analysis
+selected_corrdata <- corrdata %>% select(dshaMeeting, dshaSitevisit, dshaCommunications, planned, part_2more, hours_fumore1, ins, out, mix, top, production, mkting, clients, suppliers, consultants
+                                         )
+
+# Compute the correlation matrix
+cor_matrix <- cor(selected_corrdata, use = "pairwise.complete.obs")  # Handles missing values pairwise
+
+# Display the correlation matrix
+print(cor_matrix)
+
+
