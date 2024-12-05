@@ -84,6 +84,9 @@ ggplot(inertia_results, aes(x = seed, y = inertia)) +
   theme_minimal()
 }
 
+# The two graphs. Need to hash out the one you don't want to see. might make
+# a function to choose from the terminal later
+
 # centroid_graph()
 inertia_graph()
   
