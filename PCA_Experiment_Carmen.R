@@ -1,13 +1,11 @@
-instal
+
 
 # Load necessary libraries
-library(readr)
 library(dplyr)
 library(tidyr)
 
 # Read the CSV file
-setwd("/Users/carmencilla/Desktop/Master EUR/Block 2/Data Science and HR Analytics/Replication Assignment/GROUP_ASSIGNMENT/")
-ceo_data <- read_csv("survey_response_data.csv")
+ceo_data <- read.csv("/Users/carmencilla/Desktop/Master EUR/Block 2/Data Science and HR Analytics/Replication Assignment/GROUP_ASSIGNMENT/survey_response_data.csv")
 
 # Set 'id' as the row identifier
 ceo_data <- ceo_data %>%
@@ -167,9 +165,8 @@ pca_scores <- as.matrix(pca_data) %*% pca_components
 
 # Verify PCA scores
 print("PCA Scores (First 6 Rows):")
-print(head(pca_scores*-1))     
-print(pca_components*-1)
-##CARMEN
+print(head(pca_scores))
+
 
 ##K-MEANS
 # Assuming 'agg_data' has been created as per previous steps
@@ -219,29 +216,117 @@ print("K-Means centroids:")
 print(centroids)
 
 print("K-Means labels (first 10):")
-print(labels)
+print(labels[1:10])
 
 print(paste("K-Means total within-cluster sum of squares (inertia):", inertia))
 
+################################################################################
+################################################################################
+####################      PCA EXPERIMENT       #################################
+################################################################################
+################################################################################
 
-###########################
-######### TABLES ##########
-###########################
-#TABLE1
-library(haven)
-library(dplyr)
+#Original analysis: 6 components (same method and commands as the rest to compare!!)
+pca_result_6 <- prcomp(pca_data, scale. = TRUE)
+biplot(pca_result_6, scale=0, main = "PCA Biplot (6 Components)") 
 
-# Load the Stata file
-corrdata <- read_dta("diegos_correlation_data.dta")
+######PCA WITH 4 COMPONENTS (from agg_data): long, planned, large, out##########
 
-# Select specific variables for correlation analysis
-selected_corrdata <- corrdata %>% select(dshaMeeting, dshaSitevisit, dshaCommunications, planned, part_2more, hours_fumore1, ins, out, mix, top, production, mkting, clients, suppliers, consultants
-                                         )
+# Subset for PCA with 4 parameters (e.g., 'long', 'planned', 'large', 'out')
+pca_data_4 <- agg_data_share %>%
+  select(long, planned, large, out)
 
-# Compute the correlation matrix
-cor_matrix <- cor(selected_corrdata, use = "pairwise.complete.obs")  # Handles missing values pairwise
+# Verify the PCA data with 4 parameters
+print("PCA Data with 4 Parameters:")
+print(head(pca_data_4))
 
-# Display the correlation matrix
-print(cor_matrix)
+# Perform PCA
+pca_result_4 <- prcomp(pca_data_4, scale. = TRUE)
+
+# Print summary for variance explained
+print("PCA with 4 Parameters Summary:")
+summary(pca_result_4)
+
+# Print the loadings (contributions of variables to the components)
+print("PCA with 4 Parameters Loadings:")
+print(pca_result_4$rotation)
+
+# Plot Scree Plot
+barplot(pca_result_4$sdev^2 / sum(pca_result_4$sdev^2),
+        main = "Scree Plot (4 Parameters)",
+        xlab = "Principal Component",
+        ylab = "Proportion of Variance Explained",
+        col = "skyblue")
+
+print(pca_result_4)
+
+#Important data about PCA 4 Components: 
+explained_variance <- (pca_result_4$sdev)^2
+proportion_variance <- explained_variance / sum(explained_variance) 
+cumulative_variance <- cumsum(proportion_variance) 
+
+# Cumulative Variance Plot
+plot(cumulative_variance,
+     type = "b",
+     main = "Cumulative Variance Explained (4 Parameters)",
+     xlab = "Number of Principal Components",
+     ylab = "Cumulative Proportion of Variance",
+     col = "darkblue", pch = 19)
+
+#Scree plot
+barplot(proportion_variance,
+        main = "Scree Plot (4 Parameters)",
+        xlab = "Principal Component",
+        ylab = "Proportion of Variance Explained",
+        col = "skyblue")
+
+#Biplot PC1-PC2 and PC3-PC4
+biplot(pca_result_4, scale = 0, choices = c(1, 2), main = "PCA Biplot (PC1 vs PC2)")
+biplot(pca_result_4, scale = 0, choices = c(3, 4), main = "PCA Biplot (PC3 vs PC4)")
+
+################PCA WITH 8 COMPONENTS (from agg_data)####################
+
+###Creating New Variable 1: public_relations. We need to create it in 
+# ceo_data and the use it for agg_data to perform PCA. 
+ceo_data <- ceo_data %>%
+  mutate(public_relations = ifelse(type %in% c("public_event", "workrelated_leisure", "business_meal", "site_visit"), 1, 0))
+
+# Verify:
+table(ceo_data$public_relations)
+head(ceo_data[, c("id", "public_relations")])
+
+###Create New Variable 2: decision_intensity
+#Check the mean of the functions in the data set: 
+print(mean(ceo_data$n_functions)) ## 1.663325
+
+#Therefore, we can establish "intense" for 2 or more functions. 
+decision_intensity <- ceo_data %>%
+  group_by(id) %>%
+  summarise(decision_intensity = sum(n_functions > 2, na.rm = TRUE) / n())
+#Decision intensity = proportion of activities that imply more than 2 activities per CEO. 
+
+# Verificar los resultados
+print(head(decision_intensity))
+
+#Join new variables to agg_data_shared before performing PCA. 
+agg_data_share <- agg_data_share %>%
+  left_join(decision_intensity, by = "id")
+
+agg_data_share <- agg_data_share %>%
+  left_join(public_relations, by = "id")
+
+# Verify!s
+print(head(agg_data))
+
+
+
+agg_data_share <- agg_data_share %>%
+  left_join(ceo_data[, c("id", "public_relations")], by = "id") %>%
+  left_join(ceo_data[, c("id", "decision_intensity")], by = "id")
+
+
+
+
+
 
 
