@@ -13,10 +13,12 @@ centroid_results <- data.frame()
 # Initialize a data frame to store inertia values
 inertia_results <- data.frame(seed = integer(), inertia = numeric())
 
+# Get user input for seed range
 LL <- as.numeric(readline(prompt = "Set a lower limit: "))
 UL <- as.numeric(readline(prompt = "Set an upper limit: "))
 Steps <- as.numeric(readline(prompt = "Step size: "))
 
+# Run k-means for each seed
 for (seed in seq(LL, UL, by = Steps)) {
   set.seed(seed)
   kmeans_result <- kmeans(kmeans_data, centers = 2, nstart = 1)
@@ -26,72 +28,94 @@ for (seed in seq(LL, UL, by = Steps)) {
   centroids$cluster <- 1:2
   centroids$seed <- seed
   
-  
-  
-  # Before the clusters would change, even though they 
-  # would take the same value as with other seeds,
-  # Therefore we need to ensure consistent labeling: 
-  # Assign cluster 1 to the cluster with the highest 'long' value
+  # Ensure consistent labeling: Assign cluster 1 to the cluster with the highest 'long' value
   centroids <- centroids %>%
     arrange(desc(long)) %>%
     mutate(cluster = if_else(row_number() == 1, 1, 2)) %>%
-    arrange(cluster) # Sort clusters back to 1 and 2
+    arrange(cluster)
   
-  # Append to the results
+  # Store results
   centroid_results <- rbind(centroid_results, centroids)
-  
-  # Extract inertia and store it with the corresponding seed
-  inertia_results <- rbind(inertia_results, data.frame(seed = seed, inertia = kmeans_result$tot.withinss))
-  
+  inertia_results <- rbind(inertia_results, 
+                           data.frame(seed = seed, inertia = kmeans_result$tot.withinss))
 }
 
+# Create pattern string for identifying unique solutions
+centroid_results <- centroid_results %>%
+  group_by(seed) %>%
+  mutate(pattern = paste(
+    paste(coordinate1, coordinate2, large, long, out, planned, collapse="_"),
+    collapse="|"
+  )) %>%
+  ungroup()
 
-# Print the results for verification
-print(centroid_results)
+# Find unique patterns
+unique_patterns <- centroid_results %>%
+  group_by(pattern) %>%
+  slice(1:2) %>%  # Keep both clusters
+  ungroup()
 
-# Print inertia results for verification
-print(inertia_results)
+# Create long format for centroid plotting
+unique_patterns_long <- unique_patterns %>%
+  pivot_longer(cols = c(coordinate1, coordinate2, large, long, out, planned), 
+               names_to = "variable", values_to = "value")
 
-# Reshape data for plotting
-centroid_long <- centroid_results %>%
-  pivot_longer(cols = -c(cluster, seed), names_to = "variable", values_to = "value")
+# Find unique inertia values
+unique_inertias <- inertia_results %>%
+  mutate(inertia_rounded = round(inertia, 3)) %>%
+  distinct(inertia_rounded) %>%
+  arrange(inertia_rounded)
 
-# Plot centroids by seed
-centroid_graph <- function() {
-ggplot(centroid_long, aes(x = variable, y = value, color = factor(seed), shape = factor(cluster))) +
+# Plot 1: Centroid Patterns
+centroid_plot <- ggplot(unique_patterns_long, 
+                        aes(x = variable, y = value, 
+                            color = factor(seed), 
+                            shape = factor(cluster),
+                            group = interaction(seed, cluster))) +
   geom_point(size = 4) +
-  geom_line(aes(group = interaction(seed, cluster)), linetype = "dashed") +
-  labs(
-    title = "Variation in K-Means Centroid Positions Across Different Seeds",
-    x = "Variable",
-    y = "Centroid Value",
-    color = "Seed",
-    shape = "Cluster"
-  ) +
+  geom_line(linetype = "dashed") +
+  scale_color_discrete(name = "Unique Pattern Seeds") +
+  scale_shape_manual(values = c(16, 17)) +  # Circle and triangle
+  labs(title = "Unique K-Means Centroid Patterns",
+       subtitle = paste("From seeds", LL, "to", UL),
+       x = "Variable",
+       y = "Centroid Value",
+       shape = "Cluster") +
   theme_minimal()
-}
 
-inertia_graph <- function() {
-# Plot inertia vs. seed
-ggplot(inertia_results, aes(x = seed, y = inertia)) +
-  geom_line(color = "black", size = 1) +
-  geom_point(color = "black", size = 3) +
+# Plot 2: Inertia Values
+inertia_plot <- ggplot(inertia_results, aes(x = seed, y = inertia)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_hline(data = unique_inertias, 
+             aes(yintercept = inertia_rounded),
+             color = "red", linetype = "dashed", alpha = 0.5) +
   labs(
-    title = "K-Means Inertia Across Different Seeds",
-    x = "Seed",
-    y = "Inertia (Total Within-Cluster Sum of Squares)"
+    title = "K-Means Inertia Values Across Different Seeds",
+    subtitle = paste("Found", nrow(unique_inertias), "distinct inertia values"),
+    x = "Seed Value",
+    y = "Total Within-Cluster Inertia\n(Sum of Squares)"
   ) +
-  theme_minimal()
-}
+  theme_minimal() +
+  scale_y_continuous(labels = function(x) sprintf("%.3f", x))
 
-# The two graphs. Need to hash out the one you don't want to see. might make
-# a function to choose from the terminal later
+# Print summary statistics
+print("Unique inertia values:")
+print(unique_inertias)
 
-# centroid_graph()
-inertia_graph()
-  
-  
-  
-  
+inertia_counts <- inertia_results %>%
+  mutate(inertia_rounded = round(inertia, 3)) %>%
+  group_by(inertia_rounded) %>%
+  summarise(
+    count = n(),
+    percentage = round(n()/nrow(inertia_results) * 100, 1)
+  ) %>%
+  arrange(inertia_rounded)
+
+print("\nFrequency of each inertia value:")
+print(inertia_counts)
+
+# Display plots
+print(centroid_plot)
+print(inertia_plot)
   
   
