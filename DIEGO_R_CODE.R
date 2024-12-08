@@ -326,3 +326,140 @@ print_key_coefs(reg5, "5. With Management Controls")
 # Save the models for later use if needed
 models <- list(reg1, reg2, reg3, reg4, reg5)
 saveRDS(models, "ceo_regressions.rds")
+
+
+##########EXTENSION#######################
+#THIS IS THE CODE TO APPEND AND CREATE THE MERGED FILE WITH PR DO NOT RUN IF YOU DONT HAVE TO!!!!!!!
+# Load required libraries
+library(tidyverse)  # For data manipulation
+library(haven)      # For reading Stata files
+
+# Read the public relations CSV file
+pr_data <- read_csv("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/public_relations_index.csv")
+
+# Read the main Stata dataset
+main_data <- read_dta("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/Accounts_matched_collapsed.dta")
+
+# Rename the id column in pr_data to match main_data
+pr_data <- pr_data %>%
+  rename(company_id = id)
+
+# Before merging, let's look at the data
+cat("Number of rows in public relations data:", nrow(pr_data), "\n")
+cat("Number of rows in main data:", nrow(main_data), "\n")
+
+# Perform the merge
+merged_data <- main_data %>%
+  left_join(pr_data, by = "company_id")
+
+# After merging, let's check the results
+cat("\nAfter merge:")
+cat("\nNumber of rows in merged data:", nrow(merged_data), "\n")
+cat("Number of non-missing public_relations values:", sum(!is.na(merged_data$public_relations)), "\n")
+
+# Quick check of the first few rows of the merged data
+cat("\nFirst few rows of merged data (checking company_id and public_relations):\n")
+print(head(select(merged_data, company_id, public_relations)))
+
+# Save the merged dataset
+write_dta(merged_data, "/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/Accounts_matched_collapsed_with_pr.dta")
+
+# Return the merged data invisibly for further use if needed
+invisible(merged_data)
+
+####REGRESSIONS WITH THE PR CONTROL######
+# Required libraries
+library(tidyverse)    
+library(fixest)       
+library(haven)    
+
+# Read the new merged data
+data_path <- "/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/Accounts_matched_collapsed_with_pr.dta"
+data <- read_dta(data_path)
+
+# Create noise controls
+noise_basic_collapse <- c("pa", "reliability", 
+                          names(data)[grep("^ww|^aa", names(data))])
+noise_basic_man <- c("pa", "reliability", 
+                     names(data)[grep("^reliability", names(data))])
+
+# Updated function to print key coefficients including public_relations
+print_key_coefs <- function(model, title) {
+  coefs <- coef(model)
+  ses <- sqrt(diag(vcov(model)))
+  
+  cat("\n", title, "\n")
+  cat("----------------------------------------\n")
+  key_vars <- c("ceo_behavior", "public_relations", "lemp", "lk", "lm", "zmanagement")
+  for(var in key_vars) {
+    if(var %in% names(coefs)) {
+      cat(sprintf("%s: %.3f (%.3f)\n", 
+                  var, coefs[var], ses[var]))
+    }
+  }
+  cat("N =", nobs(model), "\n")
+  cat("----------------------------------------\n")
+}
+
+# First, let's check for missing values in public_relations
+cat("Number of non-missing public_relations values:", sum(!is.na(data$public_relations)), "\n")
+
+# 1. Basic labor productivity
+reg1 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# 2. Adding capital
+reg2 <- feols(ly ~ ceo_behavior + public_relations + lk + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# 3. Adding materials
+reg3 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + lk + lm + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# 4. Public firms only
+reg4 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + lk + lm + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = subset(data, f_public == 1),
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# 5. With management controls
+reg5 <- feols(ly ~ ceo_behavior + public_relations + zmanagement + lemp + lempm + 
+                lemp_plant + lemp_plantm + cons + emp_imputed + active + 
+                factor(year) + factor(cty) + factor(wave) + 
+                factor(sic2) + .[noise_basic_man] + 
+                man_reliability + man_duration | 0,
+              data = data,
+              weights = ~r_averagewk,
+              cluster = ~sic2)
+
+# Print results for verification
+print_key_coefs(reg1, "1. Basic Labor Productivity")
+print_key_coefs(reg2, "2. Adding Capital")
+print_key_coefs(reg3, "3. Adding Materials")
+print_key_coefs(reg4, "4. Public Firms Only")
+print_key_coefs(reg5, "5. With Management Controls")
+
+# Save the models for later use if needed
+models <- list(reg1, reg2, reg3, reg4, reg5)
+saveRDS(models, "ceo_regressions_with_pr.rds")
+
+# Additional diagnostics for the public_relations variable
+cat("\nDiagnostics for public_relations variable:\n")
+cat("----------------------------------------\n")
+cat("Mean value:", mean(data$public_relations, na.rm = TRUE), "\n")
+cat("Standard deviation:", sd(data$public_relations, na.rm = TRUE), "\n")
+cat("Range:", range(data$public_relations, na.rm = TRUE), "\n")
