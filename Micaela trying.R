@@ -262,7 +262,7 @@ library(fixest)       # For fixed effects regressions
 library(haven)        # For reading Stata files
 
 # Read and prepare data
-data_path <- "C:/Users/micap/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/2017765data/Regressions/Accounts_matched_collapsed.dta"
+data_path <- "C:/Users/micap/Documents/GitHub/GROUP_ASSIGNMENT/Accounts_matched_collapsed.dta"
 data <- read_dta(data_path)
 
 # Create noise controls
@@ -288,7 +288,7 @@ reg1 <- feols(as.formula(create_formula(
   data = data,
   weights = ~r_averagewk,
   cluster = ~sic)
-print.
+print (reg1)
 
 # 2. Adding capital
 reg2 <- feols(as.formula(create_formula(
@@ -297,7 +297,7 @@ reg2 <- feols(as.formula(create_formula(
   data = data,
   weights = ~r_averagewk,
   cluster = ~sic)
-
+print(reg2)
 # 3. Adding materials
 reg3 <- feols(as.formula(create_formula(
   c("ceo_behavior", "lemp", "lempm", "cons", "lk", "lm", "active", "emp_imputed"),
@@ -324,11 +324,13 @@ reg5 <- feols(as.formula(paste(
   cluster = ~sic2)
 
 # Create and print table
-models <- list(reg1, reg2, reg3, reg4, reg5)
-table_output <- create_regression_table( models, title = "Table 3: CEO Behavior and Firm Performance")
+#models <- list(reg1, reg2, reg3, reg4, reg5)
+#table_output <- create_regression_table(
+ # models,
+#  title = "Table 3: CEO Behavior and Firm Performance"
+#)
 
-
-print(table_output)
+#print(table_output)
 
 ## Save results if needed
 #saveRDS(table_output, "regression_table.rds")
