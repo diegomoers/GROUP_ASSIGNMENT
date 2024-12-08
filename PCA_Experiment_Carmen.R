@@ -291,7 +291,7 @@ print(mean(ceo_data$n_functions)) ## 1.663325
 fixer <- ceo_data %>%
   group_by(id) %>%
   summarise(fixer = sum(n_functions > 2, na.rm = TRUE) / n())
-#Decision intensity = proportion of activities that imply more than 2 activities per CEO. 
+#Fixer = proportion of activities that imply more than 2 activities per CEO. 
 
 #Note: ceo_data is a dataset of many observations per CEO. Agg_data_share is a measure per CEO
   # that is, only 1 observation, aggregated/grouped by CEO. We add out new variables to agg_data_share:
