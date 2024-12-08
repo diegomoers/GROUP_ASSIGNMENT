@@ -244,4 +244,85 @@ cor_matrix <- cor(selected_corrdata, use = "pairwise.complete.obs")  # Handles m
 # Display the correlation matrix
 print(cor_matrix)
 
+#TABLE3
 
+# Read the data
+data_path <- "/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/2017765data/Regressions/Accounts_matched_collapsed.dta"
+data <- read_dta(data_path)
+
+# Create noise controls
+noise_basic_collapse <- c("pa", "reliability", 
+                          names(data)[grep("^ww|^aa", names(data))])
+noise_basic_man <- c("pa", "reliability", 
+                     names(data)[grep("^reliability", names(data))])
+
+# Function to print key coefficients for verification
+print_key_coefs <- function(model, title) {
+  coefs <- coef(model)
+  ses <- sqrt(diag(vcov(model)))
+  
+  cat("\n", title, "\n")
+  cat("----------------------------------------\n")
+  key_vars <- c("ceo_behavior", "lemp", "lk", "lm", "zmanagement")
+  for(var in key_vars) {
+    if(var %in% names(coefs)) {
+      cat(sprintf("%s: %.3f (%.3f)\n", 
+                  var, coefs[var], ses[var]))
+    }
+  }
+  cat("N =", nobs(model), "\n")
+  cat("----------------------------------------\n")
+}
+
+# 1. Basic labor productivity
+reg1 <- feols(ly ~ ceo_behavior + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# 2. Adding capital
+reg2 <- feols(ly ~ ceo_behavior + lk + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# 3. Adding materials
+reg3 <- feols(ly ~ ceo_behavior + lemp + lempm + cons + lk + lm + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# 4. Public firms only
+reg4 <- feols(ly ~ ceo_behavior + lemp + lempm + cons + lk + lm + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = subset(data, f_public == 1),
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# 5. With management controls
+reg5 <- feols(ly ~ ceo_behavior + zmanagement + lemp + lempm + 
+                lemp_plant + lemp_plantm + cons + emp_imputed + active + 
+                factor(year) + factor(cty) + factor(wave) + 
+                factor(sic2) + .[noise_basic_man] + 
+                man_reliability + man_duration | 0,
+              data = data,
+              weights = ~r_averagewk,
+              cluster = ~sic2)
+
+# Print results for verification
+print_key_coefs(reg1, "1. Basic Labor Productivity")
+print_key_coefs(reg2, "2. Adding Capital")
+print_key_coefs(reg3, "3. Adding Materials")
+print_key_coefs(reg4, "4. Public Firms Only")
+print_key_coefs(reg5, "5. With Management Controls")
+
+# Save the models for later use if needed
+models <- list(reg1, reg2, reg3, reg4, reg5)
+saveRDS(models, "ceo_regressions.rds")
