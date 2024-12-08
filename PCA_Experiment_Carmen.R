@@ -383,3 +383,7 @@ pca_scores_4 <- as.matrix(pca_data_4) %*% pca_components_4
 # Verify PCA scores
 print("PCA Scores (First 6 Rows):")
 print(head(pca_scores_4))
+
+
+
+
