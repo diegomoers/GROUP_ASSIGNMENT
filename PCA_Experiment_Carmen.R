@@ -5,7 +5,8 @@ library(dplyr)
 library(tidyr)
 
 # Read the CSV file
-ceo_data <- read.csv("/Users/carmencilla/Desktop/Master EUR/Block 2/Data Science and HR Analytics/Replication Assignment/GROUP_ASSIGNMENT/survey_response_data.csv")
+setwd("/Users/carmencilla/Desktop/Master EUR/Block 2/Data Science and HR Analytics/Replication Assignment/GROUP_ASSIGNMENT/")
+ceo_data <- read.csv("survey_response_data.csv")
 
 # Set 'id' as the row identifier
 ceo_data <- ceo_data %>%
@@ -177,20 +178,6 @@ library(dplyr)
 # Calculate the total count per CEO
 agg_data$total_count <- rowSums(agg_data[, c('long', 'planned', 'large', 'out', 'coordinate1', 'coordinate2')])
 
-#
-#Calculate the shares
-#agg_data_share <- agg_data %>%
- # mutate(
-  #  long_share = long / total_count,
-   # planned_share = planned / total_count,
-    #large_share = large / total_count,
-    #out_share = out / total_count,
-    #coordinate1_share = coordinate1 / total_count,
-    #coordinate2_share = coordinate2 / total_count
-  #) %>%
-  #select(id, ends_with('_share'))
-
-
 # Prepare the data for k-means (exclude 'id' column)
 kmeans_data <- agg_data_share %>%
   select(-id)
@@ -296,26 +283,26 @@ public_relations_summary <- ceo_data %>%
   +     group_by(id) %>%
   +     summarise(public_relations = sum(public_relations, na.rm = TRUE) / n())
 
-###Create New Variable 2: decision_intensity
+###Create New Variable 2: fixer
 #Check the mean of the functions in the data set: 
 print(mean(ceo_data$n_functions)) ## 1.663325
 
 #Therefore, we can establish "intense" for 2 or more functions. 
-decision_intensity <- ceo_data %>%
+fixer <- ceo_data %>%
   group_by(id) %>%
-  summarise(decision_intensity = sum(n_functions > 2, na.rm = TRUE) / n())
+  summarise(fixer = sum(n_functions > 2, na.rm = TRUE) / n())
 #Decision intensity = proportion of activities that imply more than 2 activities per CEO. 
 
 #Note: ceo_data is a dataset of many observations per CEO. Agg_data_share is a measure per CEO
   # that is, only 1 observation, aggregated/grouped by CEO. We add out new variables to agg_data_share:
 agg_data_share <- agg_data_share %>%
-  left_join(decision_intensity, by = "id") %>%
+  left_join(fixer, by = "id") %>%
   left_join(public_relations_summary, by = "id")
 
 ##PCA analysis for 8 variables 
 # Subset for PCA with 8 parameters
 pca_data_8 <- agg_data_share %>%
-  select(long, planned, large, out, coordinate1, coordinate2, public_relations, decision_intensity)
+  select(long, planned, large, out, coordinate1, coordinate2, public_relations, fixer)
 
 # Verify the PCA data with 8 parameters
 print("PCA Data with 8 Parameters:")
@@ -325,11 +312,74 @@ print(head(pca_data_8))
 pca_result_8 <- prcomp(pca_data_8, scale. = TRUE)
 
 #Scree plot for 8 components
-barplot(pca_result_8$sdev^2 / sum(pca_result_4$sdev^2),
+barplot(pca_result_8$sdev^2 / sum(pca_result_8$sdev^2),
         main = "Scree Plot (8 Parameters)",
         xlab = "Principal Component",
         ylab = "Proportion of Variance Explained",
         col = "skyblue")
+ 
+
+############  Eigenvalues for 8 components: 
+# Compute the correlation matrix
+cor_matrix_8 <- cor(pca_data_8, use = "complete.obs")
+print(cor_matrix_8)
+
+# Perform eigen decomposition on the correlation matrix
+eig_8 <- eigen(cor_matrix_8)
+eig_vals_8 <- eig_8$values
+eig_vecs_8 <- eig_8$vectors
+
+# Print eigenvalues to understand the variance captured by each component
+print("Eigenvalues:")
+print(eig_vals_8)
+
+# Determine the number of components to retain based on eigenvalues > 1
+num_components <- sum(eig_vals_8 > 1)
+print(paste("Number of components with eigenvalues > 1:", num_components))
+
+# Extract the indices of components with eigenvalues > 1
+indices_to_retain <- which(eig_vals_8 > 1)
+
+# Extract the corresponding eigenvectors (principal components)
+pca_components_8 <- eig_vecs_8[, indices_to_retain]
+
+# Project the data onto the retained principal components
+pca_scores_8 <- as.matrix(pca_data_8) %*% pca_components_8
+
+# Verify PCA scores
+print("PCA Scores (First 6 Rows):")
+print(head(pca_scores_8))
 
 
 
+
+############  Eigenvalues for 4 components: 
+# Compute the correlation matrix
+cor_matrix_4 <- cor(pca_data_4, use = "complete.obs")
+print(cor_matrix_4)
+
+# Perform eigen decomposition on the correlation matrix
+eig_4 <- eigen(cor_matrix_4)
+eig_vals_4 <- eig_4$values
+eig_vecs_4 <- eig_4$vectors
+
+# Print eigenvalues to understand the variance captured by each component
+print("Eigenvalues:")
+print(eig_vals_4)
+
+# Determine the number of components to retain based on eigenvalues > 1
+num_components_4 <- sum(eig_vals_4 > 1)
+print(paste("Number of components with eigenvalues > 1:", num_components_4))
+
+# Extract the indices of components with eigenvalues > 1
+indices_to_retain_4 <- which(eig_vals_4 > 1)
+
+# Extract the corresponding eigenvectors (principal components)
+pca_components_4 <- eig_vecs_4[, indices_to_retain_4]
+
+# Project the data onto the retained principal components
+pca_scores_4 <- as.matrix(pca_data_4) %*% pca_components_4
+
+# Verify PCA scores
+print("PCA Scores (First 6 Rows):")
+print(head(pca_scores_4))
