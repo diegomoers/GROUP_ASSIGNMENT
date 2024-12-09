@@ -1,4 +1,8 @@
-
+################################################################################
+################################################################################
+########################      REPLICATION       ################################
+################################################################################
+################################################################################
 
 # Load necessary libraries
 library(dplyr)
@@ -262,8 +266,8 @@ plot(cumulative_variance,
 
 #Scree plot
 barplot(proportion_variance,
-        main = "Scree Plot (4 Parameters)",
-        xlab = "Principal Component",
+        main = "Scree Plot (4 Components)",
+        xlab = "Principal Components",
         ylab = "Proportion of Variance Explained",
         col = "skyblue")
 
@@ -276,22 +280,24 @@ biplot(pca_result_4, scale = 0, choices = c(3, 4), main = "PCA Biplot (PC3 vs PC
 ###Creating New Variable 1: public_relations. We need to create it in 
 # ceo_data and the use it for agg_data to perform PCA. 
 ceo_data <- ceo_data %>%
-  mutate(public_relations = ifelse(type %in% c("public_event", "workrelated_leisure", "business_meal", "site_visit"), 1, 0))
+  mutate(public_relations = ifelse(type %in% c("public_event", "workrelated_leisure", "business_meal", "site_visit"),
+                                   1, 0))
 
 #Group by id so that we can paste it to agg_data_share
 public_relations_summary <- ceo_data %>%
-  +     group_by(id) %>%
-  +     summarise(public_relations = sum(public_relations, na.rm = TRUE) / n())
+  group_by(id) %>%
+  summarise(public_relations = sum(public_relations, na.rm = TRUE) / n())
 
 ###Create New Variable 2: fixer
 #Check the mean of the functions in the data set: 
 print(mean(ceo_data$n_functions)) ## 1.663325
 
-#Therefore, we can establish "intense" for 2 or more functions. 
+#Therefore, we can establish "fixer" for 2 or more functions. 
 fixer <- ceo_data %>%
   group_by(id) %>%
   summarise(fixer = sum(n_functions > 2, na.rm = TRUE) / n())
 #Fixer = proportion of activities that imply more than 2 activities per CEO. 
+
 
 #Note: ceo_data is a dataset of many observations per CEO. Agg_data_share is a measure per CEO
   # that is, only 1 observation, aggregated/grouped by CEO. We add out new variables to agg_data_share:
@@ -313,8 +319,8 @@ pca_result_8 <- prcomp(pca_data_8, scale. = TRUE)
 
 #Scree plot for 8 components
 barplot(pca_result_8$sdev^2 / sum(pca_result_8$sdev^2),
-        main = "Scree Plot (8 Parameters)",
-        xlab = "Principal Component",
+        main = "Scree Plot (8 Components)",
+        xlab = "Principal Components",
         ylab = "Proportion of Variance Explained",
         col = "skyblue")
 
@@ -330,7 +336,7 @@ eig_vals_8 <- eig_8$values
 eig_vecs_8 <- eig_8$vectors
 
 # Print eigenvalues to understand the variance captured by each component
-print("Eigenvalues:")
+print("Eigenvalues PCA-8:")
 print(eig_vals_8)
 
 # Determine the number of components to retain based on eigenvalues > 1
@@ -347,9 +353,8 @@ pca_components_8 <- eig_vecs_8[, indices_to_retain]
 pca_scores_8 <- as.matrix(pca_data_8) %*% pca_components_8
 
 # Verify PCA scores
-print("PCA Scores (First 6 Rows):")
+print("PCA Scores PCA 8 Components (First 6 Rows):")
 print(head(pca_scores_8))
-
 
 
 
@@ -364,7 +369,7 @@ eig_vals_4 <- eig_4$values
 eig_vecs_4 <- eig_4$vectors
 
 # Print eigenvalues to understand the variance captured by each component
-print("Eigenvalues:")
+print("Eigenvalues PCA-4:")
 print(eig_vals_4)
 
 # Determine the number of components to retain based on eigenvalues > 1
@@ -381,9 +386,75 @@ pca_components_4 <- eig_vecs_4[, indices_to_retain_4]
 pca_scores_4 <- as.matrix(pca_data_4) %*% pca_components_4
 
 # Verify PCA scores
-print("PCA Scores (First 6 Rows):")
+print("PCA Scores PCA 4 Components (First 6 Rows):")
 print(head(pca_scores_4))
 
 
-
-
+###########################  Presentation slides  ##############################
+    ####Screeplot for eigenvalues!!!! PCA-8
+    #png("scree_plot_8.png", width = 800, height = 600) #Open graph and save it in figs folder.
+    
+    bar_positions <- barplot(eig_vals_8, 
+                             main = "Scree Plot (8 Components)", 
+                             xlab = "Principal Component", 
+                             ylab = "Eigenvalue", 
+                             col = "skyblue")
+    
+      # Kaiser Rule (horizontal line)
+      abline(h = 1, col = "red", lty = 2)
+      
+      # Add eigenvalues over bars
+      text(x = bar_positions, 
+         y = eig_vals_8, 
+         labels = sprintf("%.2f", eig_vals_8), 
+         pos = 3,  # Position over the bar
+         cex = 0.8,  # Font size
+         col = "black")  # Font color
+    
+    #dev.off() #Closing the pdf graph. 
+      
+    ####Screeplot for eigenvalues!!!! PCA-6
+    #png("scree_plot_6.png", width = 800, height = 600) #Open graph and save it in figs folder.
+      
+    bar_positions <- barplot(eig_vals, 
+                             main = "Scree Plot (6 Components)", 
+                             xlab = "Principal Component", 
+                             ylab = "Eigenvalue", 
+                             col = "skyblue")
+    
+      # Kaiser Rule (horizontal line)
+      abline(h = 1, col = "red", lty = 2)
+    
+      # Add eigenvalues over bars
+      text(x = bar_positions, 
+         y = eig_vals, 
+         labels = sprintf("%.2f", eig_vals), 
+         pos = 3,  
+         cex = 0.8,  
+         col = "black") 
+      
+      #dev.off() #Closing the pdf graph. 
+    
+    ####Screeplot for eigenvalues!!!! PCA-4
+    #png("scree_plot_4.png", width = 800, height = 600) #Open graph and save it in figs folder.
+      
+    bar_positions <- barplot(eig_vals_4, 
+                             main = "Scree Plot (4 Components)", 
+                             xlab = "Principal Component", 
+                             ylab = "Eigenvalue", 
+                             col = "skyblue")
+    
+      # Kaiser Rule (horizontal line)
+      abline(h = 1, col = "red", lty = 2)
+    
+      # Add eigenvalues over bars
+      text(x = bar_positions, 
+         y = eig_vals_4, 
+         labels = sprintf("%.2f", eig_vals_4), 
+         pos = 3,  
+         cex = 0.8, 
+         col = "black") 
+      
+      #dev.off() #Closing the pdf graph. 
+      
+      
