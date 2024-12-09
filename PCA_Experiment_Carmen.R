@@ -277,16 +277,39 @@ biplot(pca_result_4, scale = 0, choices = c(3, 4), main = "PCA Biplot (PC3 vs PC
 
 ################PCA WITH 8 COMPONENTS (from agg_data)####################
 
-###Creating New Variable 1: public_relations. We need to create it in 
+###Creating New Variable 1.A.: market_relations. We need to create it in 
 # ceo_data and the use it for agg_data to perform PCA. 
 ceo_data <- ceo_data %>%
-  mutate(public_relations = ifelse(type %in% c("public_event", "workrelated_leisure", "business_meal", "site_visit"),
-                                   1, 0))
+  mutate(
+    market_relations = ifelse(
+      type %in% c("public_event", "workrelated_leisure", "business_meal") &
+        (clients == 1 | suppliers == 1 | banks == 1 | investors == 1 | dealers == 1 | compts == 1), 
+      1, 
+      0
+    )
+  )
 
 #Group by id so that we can paste it to agg_data_share
-public_relations_summary <- ceo_data %>%
+market_relations_summary <- ceo_data %>%
   group_by(id) %>%
-  summarise(public_relations = sum(public_relations, na.rm = TRUE) / n())
+  summarise(market_relations = sum(market_relations, na.rm = TRUE) / n())
+
+###Creating New Variable 1.b.: non_market_relations. We need to create it in 
+# ceo_data and the use it for agg_data to perform PCA. 
+ceo_data <- ceo_data %>%
+  mutate(
+    non_market_relations = ifelse(
+      type %in% c("public_event", "workrelated_leisure", "business_meal") &
+        (politicians == 1 | journalists == 1 | govoff == 1 ), 
+      1, 
+      0
+    )
+  )
+
+#Group by id so that we can paste it to agg_data_share
+non_market_relations_summary <- ceo_data %>%
+  group_by(id) %>%
+  summarise(non_market_relations = sum(non_market_relations, na.rm = TRUE) / n())
 
 ###Create New Variable 2: fixer
 #Check the mean of the functions in the data set: 
@@ -303,58 +326,59 @@ fixer <- ceo_data %>%
   # that is, only 1 observation, aggregated/grouped by CEO. We add out new variables to agg_data_share:
 agg_data_share <- agg_data_share %>%
   left_join(fixer, by = "id") %>%
-  left_join(public_relations_summary, by = "id")
+  left_join(market_relations_summary, by = "id")  %>%
+  left_join(non_market_relations_summary, by = "id")
 
-##PCA analysis for 8 variables 
-# Subset for PCA with 8 parameters
-pca_data_8 <- agg_data_share %>%
-  select(long, planned, large, out, coordinate1, coordinate2, public_relations, fixer)
+  ##PCA analysis for 9 variables 
+# Subset for PCA with 9 parameters
+pca_data_9 <- agg_data_share %>%
+  select(long, planned, large, out, coordinate1, coordinate2, market_relations, non_market_relations, fixer)
 
-# Verify the PCA data with 8 parameters
-print("PCA Data with 8 Parameters:")
-print(head(pca_data_8))
+# Verify the PCA data with 9 parameters
+print("PCA Data with 9 Parameters:")
+print(head(pca_data_9))
 
 # Perform PCA
-pca_result_8 <- prcomp(pca_data_8, scale. = TRUE)
+pca_result_9 <- prcomp(pca_data_9, scale. = TRUE)
 
-#Scree plot for 8 components
-barplot(pca_result_8$sdev^2 / sum(pca_result_8$sdev^2),
-        main = "Scree Plot (8 Components)",
+#Scree plot for 9 components
+barplot(pca_result_9$sdev^2 / sum(pca_result_9$sdev^2),
+        main = "Scree Plot (9 Components)",
         xlab = "Principal Components",
         ylab = "Proportion of Variance Explained",
         col = "skyblue")
 
 
-############  Eigenvalues for 8 components: 
+############  Eigenvalues for 9 components: 
 # Compute the correlation matrix
-cor_matrix_8 <- cor(pca_data_8, use = "complete.obs")
-print(cor_matrix_8)
+cor_matrix_9 <- cor(pca_data_9, use = "complete.obs")
+print(cor_matrix_9)
 
 # Perform eigen decomposition on the correlation matrix
-eig_8 <- eigen(cor_matrix_8)
-eig_vals_8 <- eig_8$values
-eig_vecs_8 <- eig_8$vectors
+eig_9 <- eigen(cor_matrix_9)
+eig_vals_9 <- eig_9$values
+eig_vecs_9 <- eig_9$vectors
 
 # Print eigenvalues to understand the variance captured by each component
-print("Eigenvalues PCA-8:")
-print(eig_vals_8)
+print("Eigenvalues PCA-9:")
+print(eig_vals_9)
 
 # Determine the number of components to retain based on eigenvalues > 1
-num_components <- sum(eig_vals_8 > 1)
+num_components <- sum(eig_vals_9 > 1)
 print(paste("Number of components with eigenvalues > 1:", num_components))
 
 # Extract the indices of components with eigenvalues > 1
-indices_to_retain <- which(eig_vals_8 > 1)
+indices_to_retain <- which(eig_vals_9 > 1)
 
 # Extract the corresponding eigenvectors (principal components)
-pca_components_8 <- eig_vecs_8[, indices_to_retain]
+pca_components_9 <- eig_vecs_9[, indices_to_retain]
 
 # Project the data onto the retained principal components
-pca_scores_8 <- as.matrix(pca_data_8) %*% pca_components_8
+pca_scores_9 <- as.matrix(pca_data_9) %*% pca_components_9
 
 # Verify PCA scores
-print("PCA Scores PCA 8 Components (First 6 Rows):")
-print(head(pca_scores_8))
+print("PCA Scores PCA 9 Components (First 6 Rows):")
+print(head(pca_scores_9))
 
 
 
@@ -389,13 +413,20 @@ pca_scores_4 <- as.matrix(pca_data_4) %*% pca_components_4
 print("PCA Scores PCA 4 Components (First 6 Rows):")
 print(head(pca_scores_4))
 
+###########################  Export New Variables  ##############################
+
+extension_indeces <- market_relations_summary %>%
+  left_join(non_market_relations_summary, by = "id") %>%
+  left_join(fixer, by = "id")
+
+head(extension_indeces)
 
 ###########################  Presentation slides  ##############################
-    ####Screeplot for eigenvalues!!!! PCA-8
-    #png("scree_plot_8.png", width = 800, height = 600) #Open graph and save it in figs folder.
+    ####Screeplot for eigenvalues!!!! PCA-9
+    #png("scree_plot_9.png", width = 800, height = 600) #Open graph and save it in figs folder.
     
-    bar_positions <- barplot(eig_vals_8, 
-                             main = "Scree Plot (8 Components)", 
+    bar_positions <- barplot(eig_vals_9, 
+                             main = "Scree Plot (9 Components)", 
                              xlab = "Principal Component", 
                              ylab = "Eigenvalue", 
                              col = "skyblue")
@@ -405,8 +436,8 @@ print(head(pca_scores_4))
       
       # Add eigenvalues over bars
       text(x = bar_positions, 
-         y = eig_vals_8, 
-         labels = sprintf("%.2f", eig_vals_8), 
+         y = eig_vals_9, 
+         labels = sprintf("%.2f", eig_vals_9), 
          pos = 3,  # Position over the bar
          cex = 0.8,  # Font size
          col = "black")  # Font color
