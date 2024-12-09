@@ -317,7 +317,7 @@ barplot(pca_result_8$sdev^2 / sum(pca_result_8$sdev^2),
         xlab = "Principal Component",
         ylab = "Proportion of Variance Explained",
         col = "skyblue")
- 
+
 
 ############  Eigenvalues for 8 components: 
 # Compute the correlation matrix
