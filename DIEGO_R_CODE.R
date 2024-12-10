@@ -1,12 +1,14 @@
-instal
-
+################################################################################
+############################## PCA & K-MEANS ###################################
+################################################################################
 # Load necessary libraries
 library(readr)
 library(dplyr)
 library(tidyr)
+library(fixest)  
 
 # Read the CSV file
-setwd("/Users/carmencilla/Desktop/Master EUR/Block 2/Data Science and HR Analytics/Replication Assignment/GROUP_ASSIGNMENT/")
+setwd("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/")
 ceo_data <- read_csv("survey_response_data.csv")
 
 # Set 'id' as the row identifier
@@ -169,9 +171,8 @@ pca_scores <- as.matrix(pca_data) %*% pca_components
 print("PCA Scores (First 6 Rows):")
 print(head(pca_scores*-1))     
 print(pca_components*-1)
-##CARMEN
 
-##K-MEANS
+#K-MEANS
 # Assuming 'agg_data' has been created as per previous steps
 
 # Load necessary libraries
@@ -224,10 +225,9 @@ print(labels)
 print(paste("K-Means total within-cluster sum of squares (inertia):", inertia))
 
 
-###########################
-######### TABLES ##########
-###########################
-#TABLE1
+################################################################################
+################################# TABLE 1 ######################################
+################################################################################
 library(haven)
 library(dplyr)
 
@@ -244,7 +244,9 @@ cor_matrix <- cor(selected_corrdata, use = "pairwise.complete.obs")  # Handles m
 # Display the correlation matrix
 print(cor_matrix)
 
-#TABLE3
+################################################################################
+################################# TABLE 3 ######################################
+################################################################################
 
 # Read the data
 data_path <- "/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/2017765data/Regressions/Accounts_matched_collapsed.dta"
@@ -327,70 +329,288 @@ print_key_coefs(reg5, "5. With Management Controls")
 models <- list(reg1, reg2, reg3, reg4, reg5)
 saveRDS(models, "ceo_regressions.rds")
 
+################################################################################
+########################## TABLE 5 (NOT FINISHED) ##############################
+################################################################################
+# Load required libraries
+library(fixest)
+library(haven)
+library(dplyr)
 
-##########EXTENSION#######################
+# Column 1: Balanced sample interaction
+data_collapsed <- read_dta("Accounts_matched_collapsed.dta")
+reg1 <- feols(ly ~ ceo_behavior * balanced + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data_collapsed,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+
+# Column 2: Pre-appointment trends
+data_before <- read_dta("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/2017765data/Regressions/Accounts_matched_beforeafter.dta")
+data_before <- data_before %>% 
+  filter(year_tenure <= 0)
+
+noise_basic_collapse <- c("pa", "reliability", 
+                          names(data_before)[grep("^ww|^aa", names(data_before))])
+
+reg2 <- feols(ly ~ ceo_behavior * year_tenure + lemp + lempm + cons + active + 
+                factor(cty) + emp_imputed + .[noise_basic_collapse] | company_id,
+              data = data_before,
+              weights = ~r_averagewk,
+              cluster = ~company_id)
+
+# Column 3: Before-after analysis
+data_ba <- read_dta("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/2017765data/Regressions/Accounts_matched_beforeafter.dta")
+data_ba_collapsed <- data_ba %>%
+  group_by(cty, company_id, sic, after) %>%
+  summarise(
+    emp_imputed = max(emp_imputed),
+    ly = mean(ly),
+    ceo_behavior = mean(ceo_behavior),
+    lemp = mean(lemp),
+    cons = mean(cons),
+    active = mean(active),
+    year = mean(year),
+    r_averagewk = mean(r_averagewk),
+    across(all_of(noise_basic_collapse), mean)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    year = floor(year),
+    lemp = ifelse(is.na(lemp), -99, lemp),
+    lempm = lemp == -99
+  )
+
+reg3 <- feols(ly ~ ceo_behavior * after + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                .[noise_basic_collapse] | company_id,
+              data = data_ba_collapsed,
+              weights = ~r_averagewk)
+
+# Column 4: Split after period in two
+data_ba2 <- read_dta("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/2017765data/Regressions/Accounts_matched_beforeafter.dta")
+data_ba2_collapsed <- data_ba2 %>%
+  group_by(cty, company_id, sic, after2) %>%
+  summarise(
+    emp_imputed = max(emp_imputed),
+    ly = mean(ly),
+    ceo_behavior = mean(ceo_behavior),
+    lemp = mean(lemp),
+    cons = mean(cons),
+    active = mean(active),
+    year = mean(year),
+    r_averagewk = mean(r_averagewk),
+    across(all_of(noise_basic_collapse), mean)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    year = floor(year),
+    lemp = ifelse(is.na(lemp), -99, lemp),
+    lempm = lemp == -99
+  )
+
+reg4 <- feols(ly ~ ceo_behavior * after2 + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                .[noise_basic_collapse] | company_id,
+              data = data_ba2_collapsed,
+              weights = ~r_averagewk)
+
+# Column 5: Early tenure CEOs
+data_ba3 <- data_ba2 %>%
+  filter(i_posttenure <= 3)
+data_ba3_collapsed <- data_ba3 %>%
+  group_by(cty, company_id, sic, after2) %>%
+  summarise(
+    emp_imputed = max(emp_imputed),
+    ly = mean(ly),
+    ceo_behavior = mean(ceo_behavior),
+    lemp = mean(lemp),
+    cons = mean(cons),
+    active = mean(active),
+    year = mean(year),
+    r_averagewk = mean(r_averagewk),
+    across(all_of(noise_basic_collapse), mean)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    year = floor(year),
+    lemp = ifelse(is.na(lemp), -99, lemp),
+    lempm = lemp == -99
+  )
+
+reg5 <- feols(ly ~ ceo_behavior * after2 + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                .[noise_basic_collapse] | company_id,
+              data = data_ba3_collapsed,
+              weights = ~r_averagewk)
+
+# Print results in a similar format to the paper
+etable(reg1, reg2, reg3, reg4, reg5,
+       keep = c("ceo_behavior", "year_tenure", "::", "lemp"),
+       signif.code = c("*" = .1, "**" = .05, "***" = .01))
+
+
+################################################################################
+############################### TABLE D.2 ######################################
+################################################################################
+
+# Load required libraries
+library(fixest)
+library(haven)
+library(dplyr)
+
+# Read data
+data_collapsed <- read_dta("Accounts_matched_collapsed.dta")
+data_yearly <- read_dta("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/2017765data/Regressions/Accounts_matched_yearly.dta")
+
+# 1. Baseline regression
+cat("\nBASELINE REGRESSION:\n")
+reg1 <- feols(ly ~ ceo_behavior + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data_collapsed,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+print(reg1)
+
+# 2. Yearly data regression
+cat("\nYEARLY DATA REGRESSION:\n")
+reg2 <- feols(ly ~ ceo_behavior + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic2) + .[noise_basic_collapse] | 0,
+              data = data_yearly,
+              weights = ~r_averagewk,
+              cluster = ~company_id)
+print(reg2)
+
+# 3. Unweighted regression
+cat("\nUNWEIGHTED REGRESSION:\n")
+reg3 <- feols(ly ~ ceo_behavior + lemp + lempm + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data_collapsed,
+              cluster = ~sic)
+print(reg3)
+
+# 4. Alternative specifications
+cat("\nALTERNATIVE SPECIFICATIONS:\n")
+alt_measures <- c("type_1", "std_pca_type1", "k_means_type")
+alt_regs <- lapply(alt_measures, function(measure) {
+  formula <- as.formula(paste("ly ~", measure, "+ lemp + lempm + cons + active + 
+                             factor(year) + factor(cty) + emp_imputed + 
+                             factor(sic) + .[noise_basic_collapse] | 0"))
+  
+  reg <- feols(formula,
+               data = data_collapsed,
+               weights = ~r_averagewk,
+               cluster = ~sic)
+  
+  cat("\nResults for", measure, ":\n")
+  print(reg)
+  
+  return(reg)
+})
+
+# 5. Controls for hours worked
+cat("\nREGRESSION WITH HOURS WORKED CONTROLS:\n")
+reg5 <- feols(ly ~ ceo_behavior + ltot_nt + lemp + lempm + cons + active + 
+                factor(year) + factor(week):factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data_collapsed,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+print(reg5)
+
+# 6. CEO characteristics controls
+cat("\nREGRESSION WITH CEO CHARACTERISTICS:\n")
+reg6 <- feols(ly ~ ceo_behavior + lemp + lempm + mba + i_studyworkabroad + 
+                exist_coo + lage + male + internal + cons + active + 
+                factor(year) + factor(cty) + emp_imputed + 
+                factor(sic) + .[noise_basic_collapse] | 0,
+              data = data_collapsed,
+              weights = ~r_averagewk,
+              cluster = ~sic)
+print(reg6)
+
+# Export results 
+etable(reg1, reg2, reg3, alt_regs[[1]], alt_regs[[2]], alt_regs[[3]], reg5, reg6,
+       keep = c("ceo_behavior", "type_1", "mba", "i_studyworkabroad", 
+                "lage", "male", "internal", "exist_coo", "ltot_nt",
+                "std_pca_type1", "k_means_type"),
+       signif.code = c("*" = 0.1, "**" = 0.05, "***" = 0.01))
+
+
+################################################################################
+############################### EXTENSION ######################################
+################################################################################
+
+
 #THIS IS THE CODE TO APPEND AND CREATE THE MERGED FILE WITH PR DO NOT RUN IF YOU DONT HAVE TO!!!!!!!
 # Load required libraries
 library(tidyverse)  # For data manipulation
 library(haven)      # For reading Stata files
 
-# Read the public relations CSV file
-pr_data <- read_csv("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/public_relations_index.csv")
+# First, read the extensions indices CSV file which contains our three new measures
+extensions_data <- read_csv("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/extension_indeces.csv")
 
 # Read the main Stata dataset
 main_data <- read_dta("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/Accounts_matched_collapsed.dta")
 
-# Rename the id column in pr_data to match main_data
-pr_data <- pr_data %>%
+# Rename the id column in extensions_data to match main_data
+extensions_data <- extensions_data %>%
   rename(company_id = id)
 
-# Before merging, let's look at the data
-cat("Number of rows in public relations data:", nrow(pr_data), "\n")
+# Let's examine our data before merging to understand what we're working with
+cat("Initial data check:\n")
+cat("Number of rows in extensions data:", nrow(extensions_data), "\n")
 cat("Number of rows in main data:", nrow(main_data), "\n")
 
-# Perform the merge
+# Perform the merge using left_join to keep all observations from main_data
 merged_data <- main_data %>%
-  left_join(pr_data, by = "company_id")
+  left_join(extensions_data, by = "company_id")
 
-# After merging, let's check the results
-cat("\nAfter merge:")
+# After merging, let's do comprehensive checks of our new variables
+cat("\nPost-merge diagnostics:")
 cat("\nNumber of rows in merged data:", nrow(merged_data), "\n")
-cat("Number of non-missing public_relations values:", sum(!is.na(merged_data$public_relations)), "\n")
+cat("Number of non-missing values for each new variable:\n")
+cat("Market relations:", sum(!is.na(merged_data$market_relations)), "\n")
+cat("Non-market relations:", sum(!is.na(merged_data$non_market_relations)), "\n")
+cat("Fixer:", sum(!is.na(merged_data$fixer)), "\n")
 
-# Quick check of the first few rows of the merged data
-cat("\nFirst few rows of merged data (checking company_id and public_relations):\n")
-print(head(select(merged_data, company_id, public_relations)))
+# Let's look at the first few rows to verify the merge worked correctly
+cat("\nFirst few rows of merged data (checking key variables):\n")
+print(head(select(merged_data, company_id, market_relations, non_market_relations, fixer)))
 
 # Save the merged dataset
-write_dta(merged_data, "/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/Accounts_matched_collapsed_with_pr.dta")
+write_dta(merged_data, "/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/Accounts_matched_collapsed_with_extensions.dta")
 
 # Return the merged data invisibly for further use if needed
 invisible(merged_data)
-
-####REGRESSIONS WITH THE PR CONTROL######
 # Required libraries
 library(tidyverse)    
 library(fixest)       
 library(haven)    
 
-# Read the new merged data
-data_path <- "/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/Accounts_matched_collapsed_with_pr.dta"
+# Read the new merged data with our extended indices
+data_path <- "/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/Accounts_matched_collapsed_with_extensions.dta"
 data <- read_dta(data_path)
 
-# Create noise controls
+# Create noise controls (keeping the same controls as before)
 noise_basic_collapse <- c("pa", "reliability", 
                           names(data)[grep("^ww|^aa", names(data))])
 noise_basic_man <- c("pa", "reliability", 
                      names(data)[grep("^reliability", names(data))])
 
-# Updated function to print key coefficients including public_relations
+# Updated function to print key coefficients including both types of relations
 print_key_coefs <- function(model, title) {
   coefs <- coef(model)
   ses <- sqrt(diag(vcov(model)))
   
   cat("\n", title, "\n")
   cat("----------------------------------------\n")
-  key_vars <- c("ceo_behavior", "public_relations", "lemp", "lk", "lm", "zmanagement")
+  key_vars <- c("ceo_behavior", "market_relations", "non_market_relations", 
+                "lemp", "lk", "lm", "zmanagement")
   for(var in key_vars) {
     if(var %in% names(coefs)) {
       cat(sprintf("%s: %.3f (%.3f)\n", 
@@ -401,11 +621,14 @@ print_key_coefs <- function(model, title) {
   cat("----------------------------------------\n")
 }
 
-# First, let's check for missing values in public_relations
-cat("Number of non-missing public_relations values:", sum(!is.na(data$public_relations)), "\n")
+# Check for missing values in our new variables
+cat("Number of non-missing values:\n")
+cat("Market relations:", sum(!is.na(data$market_relations)), "\n")
+cat("Non-market relations:", sum(!is.na(data$non_market_relations)), "\n")
 
 # 1. Basic labor productivity
-reg1 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + active + 
+reg1 <- feols(ly ~ ceo_behavior + market_relations + non_market_relations + 
+                lemp + lempm + cons + active + 
                 factor(year) + factor(cty) + emp_imputed + 
                 factor(sic) + .[noise_basic_collapse] | 0,
               data = data,
@@ -413,7 +636,8 @@ reg1 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + activ
               cluster = ~sic)
 
 # 2. Adding capital
-reg2 <- feols(ly ~ ceo_behavior + public_relations + lk + lemp + lempm + cons + active + 
+reg2 <- feols(ly ~ ceo_behavior + market_relations + non_market_relations + 
+                lk + lemp + lempm + cons + active + 
                 factor(year) + factor(cty) + emp_imputed + 
                 factor(sic) + .[noise_basic_collapse] | 0,
               data = data,
@@ -421,7 +645,8 @@ reg2 <- feols(ly ~ ceo_behavior + public_relations + lk + lemp + lempm + cons + 
               cluster = ~sic)
 
 # 3. Adding materials
-reg3 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + lk + lm + active + 
+reg3 <- feols(ly ~ ceo_behavior + market_relations + non_market_relations + 
+                lemp + lempm + cons + lk + lm + active + 
                 factor(year) + factor(cty) + emp_imputed + 
                 factor(sic) + .[noise_basic_collapse] | 0,
               data = data,
@@ -429,7 +654,8 @@ reg3 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + lk + 
               cluster = ~sic)
 
 # 4. Public firms only
-reg4 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + lk + lm + active + 
+reg4 <- feols(ly ~ ceo_behavior + market_relations + non_market_relations + 
+                lemp + lempm + cons + lk + lm + active + 
                 factor(year) + factor(cty) + emp_imputed + 
                 factor(sic) + .[noise_basic_collapse] | 0,
               data = subset(data, f_public == 1),
@@ -437,7 +663,8 @@ reg4 <- feols(ly ~ ceo_behavior + public_relations + lemp + lempm + cons + lk + 
               cluster = ~sic)
 
 # 5. With management controls
-reg5 <- feols(ly ~ ceo_behavior + public_relations + zmanagement + lemp + lempm + 
+reg5 <- feols(ly ~ ceo_behavior + market_relations + non_market_relations + 
+                zmanagement + lemp + lempm + 
                 lemp_plant + lemp_plantm + cons + emp_imputed + active + 
                 factor(year) + factor(cty) + factor(wave) + 
                 factor(sic2) + .[noise_basic_man] + 
@@ -453,13 +680,18 @@ print_key_coefs(reg3, "3. Adding Materials")
 print_key_coefs(reg4, "4. Public Firms Only")
 print_key_coefs(reg5, "5. With Management Controls")
 
-# Save the models for later use if needed
+# Save the models for later use
 models <- list(reg1, reg2, reg3, reg4, reg5)
-saveRDS(models, "ceo_regressions_with_pr.rds")
+saveRDS(models, "ceo_regressions_with_relations.rds")
 
-# Additional diagnostics for the public_relations variable
-cat("\nDiagnostics for public_relations variable:\n")
+# Additional diagnostics for our new variables
+cat("\nDiagnostics for relations variables:\n")
 cat("----------------------------------------\n")
-cat("Mean value:", mean(data$public_relations, na.rm = TRUE), "\n")
-cat("Standard deviation:", sd(data$public_relations, na.rm = TRUE), "\n")
-cat("Range:", range(data$public_relations, na.rm = TRUE), "\n")
+cat("Market Relations:\n")
+cat("Mean value:", mean(data$market_relations, na.rm = TRUE), "\n")
+cat("Standard deviation:", sd(data$market_relations, na.rm = TRUE), "\n")
+cat("Range:", range(data$market_relations, na.rm = TRUE), "\n")
+cat("\nNon-Market Relations:\n")
+cat("Mean value:", mean(data$non_market_relations, na.rm = TRUE), "\n")
+cat("Standard deviation:", sd(data$non_market_relations, na.rm = TRUE), "\n")
+cat("Range:", range(data$non_market_relations, na.rm = TRUE), "\n")
