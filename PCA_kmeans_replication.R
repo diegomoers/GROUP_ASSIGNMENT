@@ -1,16 +1,14 @@
-
-
-#install.packages("tidyverse")
-
+################################################################################
+############################## PCA & K-MEANS ###################################
+################################################################################
 # Load necessary libraries
 library(readr)
 library(dplyr)
 library(tidyr)
-
-getwd()
+library(fixest)  
 
 # Read the CSV file
-setwd("C:/Users/micap/Documents/GitHub/GROUP_ASSIGNMENT")
+setwd("/Users/diegomoers/Desktop/REPLICATION ASSIGNMENT/GROUP_ASSIGNMENT/")
 ceo_data <- read_csv("survey_response_data.csv")
 
 # Set 'id' as the row identifier
@@ -173,9 +171,8 @@ pca_scores <- as.matrix(pca_data) %*% pca_components
 print("PCA Scores (First 6 Rows):")
 print(head(pca_scores*-1))     
 print(pca_components*-1)
-##CARMEN
 
-##K-MEANS
+#K-MEANS
 # Assuming 'agg_data' has been created as per previous steps
 
 # Load necessary libraries
@@ -187,15 +184,15 @@ agg_data$total_count <- rowSums(agg_data[, c('long', 'planned', 'large', 'out', 
 #
 #Calculate the shares
 #agg_data_share <- agg_data %>%
-# mutate(
-#  long_share = long / total_count,
-# planned_share = planned / total_count,
-#large_share = large / total_count,
-#out_share = out / total_count,
-#coordinate1_share = coordinate1 / total_count,
-#coordinate2_share = coordinate2 / total_count
-#) %>%
-#select(id, ends_with('_share'))
+ # mutate(
+  #  long_share = long / total_count,
+   # planned_share = planned / total_count,
+    #large_share = large / total_count,
+    #out_share = out / total_count,
+    #coordinate1_share = coordinate1 / total_count,
+    #coordinate2_share = coordinate2 / total_count
+  #) %>%
+  #select(id, ends_with('_share'))
 
 
 # Prepare the data for k-means (exclude 'id' column)
@@ -228,113 +225,4 @@ print(labels)
 print(paste("K-Means total within-cluster sum of squares (inertia):", inertia))
 
 
-###########################
-######### TABLES ##########
-###########################
-#TABLE1
-library(haven)
-library(dplyr)
-
-# Load the Stata file
-corrdata <- read_dta("diegos_correlation_data.dta")
-
-# Select specific variables for correlation analysis
-selected_corrdata <- corrdata %>% select(dshaMeeting, dshaSitevisit, dshaCommunications, planned, part_2more, hours_fumore1, ins, out, mix, top, production, mkting, clients, suppliers, consultants
-)
-
-# Compute the correlation matrix
-cor_matrix <- cor(selected_corrdata, use = "pairwise.complete.obs")  # Handles missing values pairwise
-
-# Display the correlation matrix
-print(cor_matrix)
-
-
-
-
-#TABLE3
-#install.packages(fixest)
-#install.packages(haven)
-#install.packages(modelsummary)
-
-# Required libraries
-library(tidyverse)    # For data manipulation
-library(fixest)       # For fixed effects regressions
-library(haven)        # For reading Stata files
-
-# Read and prepare data
-data_path <- "C:/Users/micap/Documents/GitHub/GROUP_ASSIGNMENT/Accounts_matched_collapsed.dta"
-data <- read_dta(data_path)
-
-# Create noise controls
-noise_basic_collapse <- c("pa", "reliability", 
-                          names(data)[grep("^ww|^aa", names(data))])
-noise_basic_man <- c("pa", "reliability", 
-                     names(data)[grep("^reliability", names(data))])
-
-# Function to create regression formula string
-create_formula <- function(base_vars, noise_controls) {
-  paste("ly ~", paste(c(base_vars, 
-                        "factor(year)", 
-                        "factor(cty)", 
-                        noise_controls), 
-                      collapse = " + "))
-}
-
-# Run all regressions
-# 1. Basic labor productivity
-reg1 <- feols(as.formula(create_formula(
-  c("ceo_behavior", "lemp", "lempm", "cons", "active", "emp_imputed"),
-  noise_basic_collapse)), 
-  data = data,
-  weights = ~r_averagewk,
-  cluster = ~sic)
-print (reg1)
-
-# 2. Adding capital
-reg2 <- feols(as.formula(create_formula(
-  c("ceo_behavior", "lk", "lemp", "lempm", "cons", "active", "emp_imputed"),
-  noise_basic_collapse)),
-  data = data,
-  weights = ~r_averagewk,
-  cluster = ~sic)
-print(reg2)
-# 3. Adding materials
-reg3 <- feols(as.formula(create_formula(
-  c("ceo_behavior", "lemp", "lempm", "cons", "lk", "lm", "active", "emp_imputed"),
-  noise_basic_collapse)),
-  data = data,
-  weights = ~r_averagewk,
-  cluster = ~sic)
-
-# 4. Public firms only
-reg4 <- feols(as.formula(create_formula(
-  c("ceo_behavior", "lemp", "lempm", "cons", "lk", "lm", "active", "emp_imputed"),
-  noise_basic_collapse)),
-  data = subset(data, f_public == 1),
-  weights = ~r_averagewk,
-  cluster = ~sic)
-
-# 5. With management controls
-reg5 <- feols(as.formula(paste(
-  "ly ~ ceo_behavior + zmanagement + lemp + lempm + lemp_plant + lemp_plantm +",
-  "cons + emp_imputed + active + factor(year) + factor(cty) + factor(wave) +",
-  paste(c(noise_basic_man, "man_reliability", "man_duration"), collapse = " + "))),
-  data = data,
-  weights = ~r_averagewk,
-  cluster = ~sic2)
-
-# Create and print table
-#models <- list(reg1, reg2, reg3, reg4, reg5)
-#table_output <- create_regression_table(
- # models,
-#  title = "Table 3: CEO Behavior and Firm Performance"
-#)
-
-#print(table_output)
-
-## Save results if needed
-#saveRDS(table_output, "regression_table.rds")
-
-#NOW, you can get the info and coefficients for each regression using for example:
-summary(reg1)
-#but you can also do reg2, reg3, reg4,
+################################################################################
