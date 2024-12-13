@@ -1,0 +1,15 @@
+DATA:
+1. survey_response_data.csv is the raw data file, provided by the original authors.
+2. accounts_matched_collapsed.dta is the collapsed dataset, also provided by the original authors.
+3. Accounts_matched_collapsed_with_extensions.dta is the collapsed dataset, edited to included the market_relations, non_market_relations, and fixer variables. This was the dataset used to run the extension.
+4. correlation_data was provided by the original authors, and used to construct the correlation matrix.
+5. extension_indeces.csv has the market_relations, non_market_relations, and fixer variables matched to ID. Used to create Accounts_matched_collapsed_with_extenstions.dta.
+
+
+CODE:
+1. PCA_kmeans_replication.R is the R-translated code to the PCA and K-means clustering.
+2. tables_recreated.R is the R-translated code to replicate the original tables only.
+3. kmeans_seed.R is the code for the first experiment related to changing the seed.
+4. EFA_6vars.R runs part of the code for the second experiment, for the same 6 variables originally used by the authors.
+5. EFA.R is the other part of the code for the second experiment, runs the EFa for all variables.
+5. extension.R is the code for the extension part of the paper, including the corresponding table.
