@@ -1,15 +1,87 @@
-DATA:
-1. survey_response_data.csv is the raw data file, provided by the original authors.
-2. accounts_matched_collapsed.dta is the collapsed dataset, also provided by the original authors.
-3. Accounts_matched_collapsed_with_extensions.dta is the collapsed dataset, edited to included the market_relations, non_market_relations, and fixer variables. This was the dataset used to run the extension.
-4. correlation_data was provided by the original authors, and used to construct the correlation matrix.
-5. extension_indeces.csv has the market_relations, non_market_relations, and fixer variables matched to ID. Used to create Accounts_matched_collapsed_with_extenstions.dta.
+CEO Behavior and Firm Performance - Replication Study
+------------------------------------------------------
+This repository contains a replication study and extension of "CEO Behavior and Firm Performance" by Bandiera et al. (2020). The original paper analyzes how CEO behavior patterns correlate with firm performance using machine learning techniques.
+
+Project Overview
+-----------------
+Our replication focuses on:
+- Translating the original Python code to R for broader accessibility
+- Replicating key analyses including PCA and K-means clustering
+- Conducting robustness experiments
+- Extending the original analysis with additional behavioral dimensions
 
 
-CODE:
-1. PCA_kmeans_replication.R is the R-translated code to the PCA and K-means clustering.
-2. tables_recreated.R is the R-translated code to replicate the original tables only.
-3. kmeans_seed.R is the code for the first experiment related to changing the seed.
-4. EFA_6vars.R runs part of the code for the second experiment, for the same 6 variables originally used by the authors.
-5. EFA.R is the other part of the code for the second experiment, runs the EFa for all variables.
-5. extension.R is the code for the extension part of the paper, including the corresponding table.
+Data Files
+
+Original Data
+---------------
+1. survey_response_data.csv: Raw CEO time-use survey data from the original study
+2. accounts_matched_collapsed.dta: Collapsed dataset containing firm performance metrics
+3. correlation_data: Dataset used to construct correlation matrices in the original paper
+
+Extended Data
+--------------
+1. Accounts_matched_collapsed_with_extensions.dta: Enhanced version of the collapsed dataset including new behavioral variables:
+  - Market relations
+  - Non-market relations
+  - Fixer variables
+2. extension_indeces.csv: Mapping file connecting the new behavioral variables to CEO IDs
+
+
+Code Structure
+
+Replication Code
+----------------
+1. PCA_kmeans_replication.R: R translation of the original Python code for PCA and K-means clustering analysis
+2. tables_recreated.R: R code to reproduce the original paper's tables
+
+Experimental Analysis
+---------------------
+1. kmeans_seed.R: First robustness experiment examining sensitivity to random seed selection
+2. EFA_6vars.R: Second experiment part 1 - Exploratory Factor Analysis using original 6 variables
+3. EFA.R: Second experiment part 2 - Expanded Exploratory Factor Analysis using all variables
+
+Extension Analysis
+------------------
+1. extension.R: Implementation of new behavioral dimensions analysis, including table generation
+
+
+------
+Usage
+------
+We recommend running the PCA_kmeans_replication.R file first as this will create the necessary variables and data frames to run the other files.
+
+
+Citation
+---------
+This code repository provides an R implementation and extension of the analysis in:
+Bandiera, O., Hansen, S., Prat, A., & Sadun, R. (2020). CEO Behavior and Firm Performance. Journal of Political Economy, 128(4), 1325-1369. https://doi.org/10.1086/705331
+
+If you use this replication code in your work, please cite both the original paper and this repository:
+
+@article{bandiera2020ceo,
+  title={CEO behavior and firm performance},
+  author={Bandiera, Oriana and Hansen, Stephen and Prat, Andrea and Sadun, Raffaella},
+  journal={Journal of Political Economy},
+  volume={128},
+  number={4},
+  pages={1325--1369},
+  year={2020},
+  publisher={University of Chicago Press Chicago, IL}
+}
+
+
+Contributors
+------------
+This R implementation and extension was created by Diego Moers, Carmen Coronas, Hugo van den Belt, Micaela Palacios, Kemal Carfi [Erasmus School of Economics, Erasmus University Rotterdam]
+
+
+License
+--------
+Copying and distribution of this file, with or without modification, are permitted in any medium without royalty, provided the copyright notice and this notice are preserved. This file is offered as-is, without any warranty.
+
+
+
+
+
+
