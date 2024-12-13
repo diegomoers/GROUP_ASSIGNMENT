@@ -487,5 +487,34 @@ head(extension_indeces)
          col = "black") 
       
       #dev.off() #Closing the pdf graph. 
-      
+
+##Export tables: loadings and summary
+ 
+install.packages("writexl")
+library(writexl)
+  
+  # PCA Loadings
+  loadings_6 <- as.data.frame(pca_result_6$rotation)
+  #write_xlsx(loadings_6, "PCA_Loadings_6.xlsx")
+  
+  # PCA Summary
+  explained_variance_9 <- (pca_result_9$sdev)^2  # Variance of each component
+  proportion_variance_9 <- explained_variance_9 / sum(explained_variance_9)  # Proportion explained
+  cumulative_variance_9 <- cumsum(proportion_variance_9)  # Cumulative variance
+  
+  # Crear el dataframe del resumen
+  pca_summary_9 <- data.frame(
+    Component = paste0("PC", 1:length(eig_vals_9)),
+    Eigenvalue = eig_vals_9,
+    ProportionVariance = proportion_variance_9,
+    CumulativeVariance = cumulative_variance_9
+  )
+  
+  # Imprimir el resumen
+  print(pca_summary_9)
+  
+  write_xlsx(pca_summary_9, "PCA_Summary_9.xlsx")
+  
+  
+  
       

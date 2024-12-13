@@ -50,7 +50,7 @@ n_factors <- sum(eigen_values > 1)
 # Perform EFA
 efa_result <- fa(r = corr_matrix, 
                  nfactors = n_factors,
-                 rotate = "oblimin",
+                 rotate = "varimax",
                  fm = "minres",
                  scores = "regression")
 
