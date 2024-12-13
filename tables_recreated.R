@@ -5,7 +5,7 @@ library(haven)
 library(dplyr)
 
 # Load the Stata file
-corrdata <- read_dta("diegos_correlation_data.dta")
+corrdata <- read_dta("correlation_data.dta")
 
 # Select specific variables for correlation analysis
 selected_corrdata <- corrdata %>% select(dshaMeeting, dshaSitevisit, dshaCommunications, planned, part_2more, hours_fumore1, ins, out, mix, top, production, mkting, clients, suppliers, consultants
@@ -22,7 +22,7 @@ library(writexl)
 library(Hmisc)
 
 # Load and prepare data
-corrdata <- read_dta("diegos_correlation_data.dta")
+corrdata <- read_dta("correlation_data.dta")
 selected_corrdata <- corrdata %>% 
   select(dshaMeeting, dshaSitevisit, dshaCommunications, planned, 
          part_2more, hours_fumore1, ins, out, mix, top, production, 
