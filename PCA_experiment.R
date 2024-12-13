@@ -1,6 +1,6 @@
 ################################################################################
 ################################################################################
-########################      REPLICATION       ################################
+########################      REPLICATION PCA/KMeans       #####################
 ################################################################################
 ################################################################################
 
@@ -275,7 +275,7 @@ barplot(proportion_variance,
 biplot(pca_result_4, scale = 0, choices = c(1, 2), main = "PCA Biplot (PC1 vs PC2)")
 biplot(pca_result_4, scale = 0, choices = c(3, 4), main = "PCA Biplot (PC3 vs PC4)")
 
-################PCA WITH 8 COMPONENTS (from agg_data)####################
+################PCA WITH 9 COMPONENTS (from agg_data)####################
 
 ###Creating New Variable 1.A.: market_relations. We need to create it in 
 # ceo_data and the use it for agg_data to perform PCA. 
